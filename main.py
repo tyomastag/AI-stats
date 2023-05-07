@@ -134,7 +134,7 @@ def update_stats(update: Update, context: CallbackContext):
         for row in result:
             name, wins, losses = row
             winrate = (wins / (wins + losses)) * 100 if (wins + losses) > 0 else 0
-            stats.append(f"{name}: {wins}W / {losses}L ({winrate:.2f}%)")
+            stats.append(f"{name} (уровень {level}): {wins}W / {losses}L ({winrate:.2f}%)")
             total_wins += wins
             total_losses += losses
  
@@ -179,7 +179,7 @@ def update_daily_stats(update: Update, context: CallbackContext):
         for row in result:
             name, daily_wins, daily_losses, level = row
             winrate = (daily_wins / (daily_wins + daily_losses)) * 100 if (daily_wins + daily_losses) > 0 else 0
-            stats.append(f"{name} {level}: {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
+            stats.append(f"{name} (уровень {level}): {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
             total_daily_wins += daily_wins
             total_daily_losses += daily_losses
  
@@ -251,14 +251,15 @@ def increment_wins(update: Update, context: CallbackContext, catlet_name: str):
         cursor = conn.cursor()
         cursor.execute("UPDATE catlets SET wins=wins+1, daily_wins=daily_wins+1 WHERE user_id=? AND name=?", (user_id, catlet_name))
         conn.commit()
- 
-        cursor.execute("SELECT daily_wins, daily_losses FROM catlets WHERE user_id=? AND name=?", (user_id, catlet_name))
-        daily_wins, daily_losses = cursor.fetchone()
+
+        # Запрашиваем уровень и статистику за день
+        cursor.execute("SELECT level, daily_wins, daily_losses FROM catlets WHERE user_id=? AND name=?", (user_id, catlet_name))
+        level, daily_wins, daily_losses = cursor.fetchone()
         winrate = (daily_wins / (daily_wins + daily_losses)) * 100 if (daily_wins + daily_losses) > 0 else 0
  
-    update.callback_query.message.reply_text(f"✅ Победа за {catlet_name}\nСтатистика за сегодня: {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
+    update.callback_query.message.reply_text(f"✅ Победа за {catlet_name} (уровень {level})\nСтатистика за сегодня: {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
     competitions_menu(update, context)
- 
+
 def increment_losses(update: Update, context: CallbackContext, catlet_name: str):
     user_id = update.callback_query.from_user.id
  
@@ -267,11 +268,11 @@ def increment_losses(update: Update, context: CallbackContext, catlet_name: str)
         cursor.execute("UPDATE catlets SET losses=losses+1, daily_losses=daily_losses+1 WHERE user_id=? AND name=?", (user_id, catlet_name))
         conn.commit()
  
-        cursor.execute("SELECT daily_wins, daily_losses FROM catlets WHERE user_id=? AND name=?", (user_id, catlet_name))
-        daily_wins, daily_losses = cursor.fetchone()
+        cursor.execute("SELECT level, daily_wins, daily_losses FROM catlets WHERE user_id=? AND name=?", (user_id, catlet_name))
+        level, daily_wins, daily_losses = cursor.fetchone()
         winrate = (daily_wins / (daily_wins + daily_losses)) * 100 if (daily_wins + daily_losses) > 0 else 0
  
-    update.callback_query.message.reply_text(f"💢 Поражение для {catlet_name}'\nСтатистика за сегодня: {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
+    update.callback_query.message.reply_text(f"💢 Поражение для {catlet_name} (уровень {level})\nСтатистика за сегодня: {daily_wins}W / {daily_losses}L ({winrate:.2f}%)")
     competitions_menu(update, context)
  
 def add_catlet(update: Update, context: CallbackContext):
